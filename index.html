@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="author" content="구구 (트위터/X: @QB55yn6)" />
+    <title>구구의 방명록 튜토리얼</title>
+  </head>
+  <body>
+    <h1>방명록 페이지</h1>
+
+    <form>
+      <!-- 방명록 작성자명 입력란 -->
+      <input type="text" id="guest-name" />
+      <!-- 방명록 내용 입력란 -->
+      <input type="text" id="guest-content" />
+      <!-- 방명록 전송 버튼 -->
+      <button type="button" id="guest-submit">작성</button>
+    </form>
+
+    <div id="guest-list"></div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+      import {
+        query,
+        orderBy,
+        getFirestore,
+        collection,
+        getDocs,
+        addDoc,
+      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyAn3vAN4yNCh4Kf_-DP0vcxsJhZJxlsytM",
+        authDomain: "naru-guest-test.firebaseapp.com",
+        projectId: "naru-guest-test",
+        storageBucket: "naru-guest-test.appspot.com",
+        messagingSenderId: "834251006883",
+        appId: "1:834251006883:web:b8c8fc38ca94107ace7016",
+        measurementId: "G-YCQC5F7V7P",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+
+      const db = getFirestore(app); // Firestore 실행
+      const guestRef = collection(db, "guests"); // 'guests' 컬렉션 불러오기
+      const q = query(guestRef, orderBy("created_at", "desc")); // 불러온 방명록 전체 목록을 최신순(작성일시 내림차순)으로 정렬
+
+      // 방명록 작성 기능
+      async function sendGuest() {
+        // 사용자가 입력한 데이터 받아오기
+        const name = await document.querySelector("#guest-name").value;
+        const content = await document.querySelector("#guest-content").value;
+
+        // Firestore에 데이터 전송
+        await addDoc(guestRef, {
+          name: name,
+          content: content,
+          created_at: new Date(),
+        });
+
+        // 입력란 초기화
+        document.querySelector("#guest-name").value = "";
+        document.querySelector("#guest-content").value = "";
+      }
+
+      // 방명록 전체 목록 표시 기능
+      async function getGuestList() {
+        // 방명록 전체 목록의 HTML 코드
+        let html = `<ul>`;
+
+        // Firestore에서 최신순으로 정렬된 목록 받아오기
+        const guestList = await getDocs(q);
+
+        // 화면에 출력
+        guestList.forEach((data) => {
+          // 날짜 형식 변환
+          const date = new Date(data.data().created_at.toDate());
+          const myDate = `${date.getFullYear()}년 ${
+            date.getMonth() + 1
+          }월 ${date.getDate()}일 ${date.getHours()}:${date.getMinutes()}`;
+
+          // 개별 방명록의 HTML 코드를 전체 목록 HTML 코드에 추가
+          html += `
+            <li>
+              <p class="guest-list-name">이름: ${data.data().name}</p>
+              <p class="guest-list-content">내용: ${data.data().content}</p>
+              <p class="guest-list-created-at">작성일: ${myDate}</p>
+            </li>
+          `;
+        });
+
+        html += `</ul>`;
+
+        // 방명록 전체 목록을 실제로 화면에 표시
+        document.querySelector("#guest-list").innerHTML = html;
+      }
+
+      // '작성' 버튼에 위 함수 연결
+      document.querySelector("#guest-submit").addEventListener("click", () => {
+        sendGuest();
+        getGuestList();
+      });
+
+      // 방명록 화면 첫 진입 시 전체 목록 화면에 표시
+      getGuestList();
+    </script>
+  </body>
+</html>
